@@ -53,7 +53,7 @@ class Signaling {
   var _turnCredential;
   Map<String, Session> _sessions = {};
   MediaStream? _localStream;
-  List<MediaStream> _remoteStreams = <MediaStream>[];
+  List<MediaStream> remoteStreams = <MediaStream>[];
   List<RTCRtpSender> _senders = <RTCRtpSender>[];
   VideoSource _videoSource = VideoSource.Camera;
 
@@ -71,15 +71,29 @@ class Signaling {
 
   Map<String, dynamic> _iceServers = {
     'iceServers': [
-      {'url': 'stun:stun.l.google.com:19302'},
-      /*
-       * turn server configuration example.
       {
-        'url': 'turn:123.45.67.89:3478',
-        'username': 'change_to_real_user',
-        'credential': 'change_to_real_secret'
+        'url': "stun:stun.relay.metered.ca:80",
       },
-      */
+      {
+        'url': "turn:standard.relay.metered.ca:80",
+        'username': "07877eca454fc41ff9af9a07",
+        'credential': "ByxaCoaMM8YyIvf+",
+      },
+      {
+        'url': "turn:standard.relay.metered.ca:80?transport=tcp",
+        'username': "07877eca454fc41ff9af9a07",
+        'credential': "ByxaCoaMM8YyIvf+",
+      },
+      {
+        'url': "turn:standard.relay.metered.ca:443",
+        'username': "07877eca454fc41ff9af9a07",
+        'credential': "ByxaCoaMM8YyIvf+",
+      },
+      {
+        'url': "turns:standard.relay.metered.ca:443?transport=tcp",
+        'username': "07877eca454fc41ff9af9a07",
+        'credential': "ByxaCoaMM8YyIvf+",
+      },
     ]
   };
 
@@ -300,10 +314,33 @@ class Signaling {
         */
         _iceServers = {
           'iceServers': [
+            // {
+            //   'urls': _turnCredential['uris'][0],
+            //   'username': _turnCredential['username'],
+            //   'credential': _turnCredential['password']
+            // },
             {
-              'urls': _turnCredential['uris'][0],
-              'username': _turnCredential['username'],
-              'credential': _turnCredential['password']
+              'url': "stun:stun.relay.metered.ca:80",
+            },
+            {
+              'url': "turn:standard.relay.metered.ca:80",
+              'username': "07877eca454fc41ff9af9a07",
+              'credential': "ByxaCoaMM8YyIvf+",
+            },
+            {
+              'url': "turn:standard.relay.metered.ca:80?transport=tcp",
+              'username': "07877eca454fc41ff9af9a07",
+              'credential': "ByxaCoaMM8YyIvf+",
+            },
+            {
+              'url': "turn:standard.relay.metered.ca:443",
+              'username': "07877eca454fc41ff9af9a07",
+              'credential': "ByxaCoaMM8YyIvf+",
+            },
+            {
+              'url': "turns:standard.relay.metered.ca:443?transport=tcp",
+              'username': "07877eca454fc41ff9af9a07",
+              'credential': "ByxaCoaMM8YyIvf+",
             },
           ]
         };
@@ -397,7 +434,7 @@ class Signaling {
         case 'plan-b':
           pc.onAddStream = (MediaStream stream) {
             onAddRemoteStream?.call(newSession, stream);
-            _remoteStreams.add(stream);
+            remoteStreams.add(stream);
           };
           await pc.addStream(_localStream!);
           break;
@@ -484,7 +521,7 @@ class Signaling {
 
     pc.onRemoveStream = (stream) {
       onRemoveRemoteStream?.call(newSession, stream);
-      _remoteStreams.removeWhere((it) {
+      remoteStreams.removeWhere((it) {
         return (it.id == stream.id);
       });
     };

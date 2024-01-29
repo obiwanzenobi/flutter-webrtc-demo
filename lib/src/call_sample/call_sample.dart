@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'dart:core';
 import '../widgets/screen_select_dialog.dart';
@@ -7,6 +9,7 @@ import 'package:flutter_webrtc/flutter_webrtc.dart';
 class CallSample extends StatefulWidget {
   static String tag = 'call_sample';
   final String host;
+
   CallSample({required this.host});
 
   @override
@@ -23,6 +26,8 @@ class _CallSampleState extends State<CallSample> {
   Session? _session;
   DesktopCapturerSource? selected_source_;
   bool _waitAccept = false;
+  Timer? _timer;
+  final controller = TextEditingController();
 
   // ignore: unused_element
   _CallSampleState();
@@ -45,6 +50,7 @@ class _CallSampleState extends State<CallSample> {
     _signaling?.close();
     _localRenderer.dispose();
     _remoteRenderer.dispose();
+    _timer?.cancel();
   }
 
   void _connect(BuildContext context) async {
@@ -119,13 +125,48 @@ class _CallSampleState extends State<CallSample> {
       setState(() {});
     });
 
-    _signaling?.onAddRemoteStream = ((_, stream) {
+    _signaling?.onAddRemoteStream = ((connection, stream) {
       _remoteRenderer.srcObject = stream;
       setState(() {});
     });
 
     _signaling?.onRemoveRemoteStream = ((_, stream) {
       _remoteRenderer.srcObject = null;
+    });
+
+    _timer?.cancel();
+    _timer = Timer.periodic(Duration(milliseconds: 500), (timer) async {
+      try {
+        final peer = _session?.pc;
+        if (peer == null) {
+          print('peer null');
+          return;
+        }
+
+        final stats = await peer.getStats();
+        print('got stats');
+        if (!stats.any((element) =>
+            element.type == 'remote-inbound-rtp' &&
+            element.values.values.any((element) => element == "audio"))) {
+          return;
+        }
+        final audioStats = stats.firstWhere((element) =>
+            element.type == 'remote-inbound-rtp' &&
+            element.values.values.any((element) => element == "audio"));
+
+        String text = '';
+        audioStats.values.forEach((key, value) {
+          if (key == 'roundTripTime' || key == 'totalRoundTripTime') {
+            text += '$key=${(value * 1000).round()}ms\n';
+          }
+
+          text += '$key=$value\n';
+        });
+
+        controller.text = text;
+      } catch (e) {
+        print(e);
+      }
     });
   }
 
@@ -346,6 +387,22 @@ class _CallSampleState extends State<CallSample> {
                           orientation == Orientation.portrait ? 120.0 : 90.0,
                       child: RTCVideoView(_localRenderer, mirror: true),
                       decoration: BoxDecoration(color: Colors.black54),
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      color: Colors.white.withOpacity(0.5),
+                      child: ValueListenableBuilder(
+                        valueListenable: controller,
+                        builder: (context, value, child) {
+                          return Text(
+                            controller.text,
+                            style: TextStyle(color: Colors.black),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ]),
